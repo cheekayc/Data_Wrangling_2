@@ -1,0 +1,67 @@
+---
+title: "Reading Data from the Web"
+author: "Lectured by "Jeff Goldsmith""
+date: "2022-10-13"
+output: github_document
+---
+
+```{r setup, echo = FALSE}
+library(tidyverse)
+library(rvest)
+library(httr)
+```
+
+# Extracting Tables
+
+```{r load data from web}
+url = "http://samhda.s3-us-gov-west-1.amazonaws.com/s3fs-public/field-uploads/2k15StateFiles/NSDUHsaeShortTermCHG2015.htm"
+drug_use_html = read_html(url)
+
+drug_use_html %>% html_table()
+```
+
+We’re only focused on the first table for now, so let’s get the contents from the first list element.
+```{r}
+table_marj = 
+  drug_use_html %>% 
+  html_table() %>% 
+  first() %>% 
+# Notice that the “note” at the bottom of the table appears in every column in the first row.
+# We need to remove that…
+  slice(-1) 
+```
+
+# CSS Selectors
+
+Suppose we’d like to scrape the data about the Star Wars Movies from the IMDB page. The first step is the same as before – we need to get the HTML.
+```{r}
+swm_html = 
+  read_html("https://www.imdb.com/list/ls070150896/")
+```
+For each element, I’ll use the CSS selector in html_elements() to extract the relevant HTML code, and convert it to text. Then I can combine these into a data frame.
+```{r}
+title_vec = 
+  swm_html %>%
+  html_elements(".lister-item-header a") %>%
+  html_text()
+
+gross_rev_vec = 
+  swm_html %>%
+  html_elements(".text-small:nth-child(7) span:nth-child(5)") %>%
+  html_text()
+
+runtime_vec = 
+  swm_html %>%
+  html_elements(".runtime") %>%
+  html_text()
+
+swm_df = 
+  tibble(
+    title = title_vec,
+    rev = gross_rev_vec,
+    runtime = runtime_vec)
+```
+
+# Using an API
+
+
