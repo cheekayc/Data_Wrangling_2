@@ -507,3 +507,68 @@ movie_reviews
     ## 10 Cute                                 4.0 out of 5 stars Fun
 
 # Using an API
+
+Of course we can download datasets as csv file, but access them directly
+using the API can improve reproducibility and make it easier to update
+results to reflect new data. On the webpage, look for **API**, click on
+it and select *csv* (Don’t pick ‘JSON’ it’s super complicated).
+
+``` r
+nyc_water = 
+  # When getting dataset via API, we want to use the `GET` command (must be uppercase GET so that it's from the `httr` package).
+  GET("https://data.cityofnewyork.us/resource/ia2d-e54m.csv") %>% 
+  # then we need to clean up the dataset using `CONTENT()`.
+  content("parsed") 
+```
+
+``` r
+BRFSS_nope = 
+  GET("https://chronicdata.cdc.gov/resource/acme-vg9e.csv") %>% 
+  content("parsed")
+# Wait... I only get 1000 rows but the dataset on the webpage has 134203 rows...because by default it only shows you the first 1000 rows. So we might want to modify the query...
+
+# We can click on the `query functionality` link to see what kind of functions/commands we can do.
+BRFSS_better = 
+  GET("https://chronicdata.cdc.gov/resource/acme-vg9e.csv",
+  # We can set the limit to the # of rows that we want (ie. 5000, 10000, or all)
+      query = list("$limit" = 134203)) %>% 
+  content("parsed")
+```
+
+``` r
+Pokemon = 
+  GET("https://pokeapi.co/api/v2/pokemon/pikachu") %>% 
+  content()
+# This is a huge list.
+
+# We can ask them to show us what info they have for this pokemon:
+names(Pokemon)
+```
+
+    ##  [1] "abilities"                "base_experience"         
+    ##  [3] "forms"                    "game_indices"            
+    ##  [5] "height"                   "held_items"              
+    ##  [7] "id"                       "is_default"              
+    ##  [9] "location_area_encounters" "moves"                   
+    ## [11] "name"                     "order"                   
+    ## [13] "past_types"               "species"                 
+    ## [15] "sprites"                  "stats"                   
+    ## [17] "types"                    "weight"
+
+``` r
+# Show us the name of this pokemon:
+Pokemon[["name"]]
+```
+
+    ## [1] "pikachu"
+
+``` r
+# Show us the weight of this pokemon:
+Pokemon[["weight"]]
+```
+
+    ## [1] 60
+
+``` r
+# We can do more!
+```
