@@ -9,6 +9,20 @@ output: github_document
 knitr::opts_chunk$set(message = FALSE)
 
 library(tidyverse)
+library(rvest)
+library(p8105.datasets)
 ```
 
+# Strings and regex
+
+You can use `str_detect` to find cases where the match exists (often useful in conjunction with `filter`), 
+and you can use `str_replace` to replace an instance of a match with something else (often useful in conjunction with `mutate`). 
+
+In the following examples we’ll mostly focus on vectors to avoid the complication of data frames, but we’ll see those shortly.
+
+```{r EX1}
+string_vec = c("my", "name", "is", "jeff")
+
+str_detect(string_vec, "jeff")
+```
 
