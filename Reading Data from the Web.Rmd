@@ -1,6 +1,6 @@
 ---
 title: "Reading Data from the Web"
-author: "Lectured by "Jeff Goldsmith""
+author: "Lectured by Jeff Goldsmith"
 date: "2022-10-13"
 output: github_document
 ---
@@ -17,11 +17,13 @@ library(httr)
 url = "http://samhda.s3-us-gov-west-1.amazonaws.com/s3fs-public/field-uploads/2k15StateFiles/NSDUHsaeShortTermCHG2015.htm"
 drug_use_html = read_html(url)
 
+# I want to pull out all the tables from the html webpage:
 drug_use_html %>% html_table()
+# Oops...Too many tables.....
 ```
 
 We’re only focused on the first table for now, so let’s get the contents from the first list element.
-```{r}
+```{r I only want to look at the first table from the webpage}
 table_marj = 
   drug_use_html %>% 
   html_table() %>% 
@@ -29,38 +31,99 @@ table_marj =
 # Notice that the “note” at the bottom of the table appears in every column in the first row.
 # We need to remove that…
   slice(-1) 
+
+table_marj
 ```
+
+
+# Learning Assessment
+
+Create a data frame that contains the cost of living table for New York from the below html link.
+```{r LA1}
+col_df = 
+  read_html("https://www.bestplaces.net/cost_of_living/city/new_york/new_york") %>% 
+  html_table(header = TRUE) %>% 
+  first()
+
+col_df
+```
+
 
 # CSS Selectors
 
-Suppose we’d like to scrape the data about the Star Wars Movies from the IMDB page. The first step is the same as before – we need to get the HTML.
-```{r}
-swm_html = 
+Suppose we’d like to scrape the data about the Star Wars Movies from the IMDB page: I want to create a dataframe that shows all Star Wars movies'
+title, time length, and revenue made.
+
+```{r movie title length revenue}
+# First step, read the html.
+starwars_html = 
   read_html("https://www.imdb.com/list/ls070150896/")
 ```
+
 For each element, I’ll use the CSS selector in html_elements() to extract the relevant HTML code, and convert it to text. Then I can combine these into a data frame.
-```{r}
-title_vec = 
-  swm_html %>%
+*Green box is something that we want to select.
+*Yellow box is all other things that are under the same CSS tag.
+*Red box is things that we don't want to include.
+```{r movies title time length and revenue}
+movies_title = 
+  starwars_html %>%
+  # on the webpage, use CSS selector to select all movies' titles.
   html_elements(".lister-item-header a") %>%
+  # then convert to text.
   html_text()
 
-gross_rev_vec = 
-  swm_html %>%
+movies_revenue = 
+  starwars_html %>%
   html_elements(".text-small:nth-child(7) span:nth-child(5)") %>%
   html_text()
 
-runtime_vec = 
-  swm_html %>%
+movies_runtime = 
+  starwars_html %>%
   html_elements(".runtime") %>%
   html_text()
 
-swm_df = 
+starwars_movies = 
   tibble(
-    title = title_vec,
-    rev = gross_rev_vec,
-    runtime = runtime_vec)
+    title = movies_title,
+    revenue = movies_revenue,
+    runtime = movies_runtime)
+
+starwars_movies
 ```
+
+
+# Learning Assessment 2
+
+The webpage (url) below contains the 10 most recent reviews of the movie “Napoleon Dynamite”. Use a process similar to the one above to extract the titles of the reviews.
+
+```{r LA2}
+amazon_html = 
+  read_html("https://www.amazon.com/product-reviews/B00005JNBQ/ref=cm_cr_arp_d_viewopt_rvwer?ie=UTF8&reviewerType=avp_only_reviews&sortBy=recent&pageNumber=1")
+
+review_titles = 
+  amazon_html %>% 
+  html_elements(".a-text-bold span") %>% 
+  html_text()
+
+review_stars = 
+  amazon_html %>% 
+  html_elements("#cm_cr-review_list .review-rating") %>% 
+  html_text()
+
+review_comments = 
+  amazon_html %>% 
+  html_elements(".review-text-content span") %>% 
+  html_text()
+
+movie_reviews = 
+  tibble(
+    title = review_titles,
+    stars = review_stars,
+    comments = review_comments)
+
+movie_reviews
+```
+
 
 # Using an API
 
