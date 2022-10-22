@@ -221,7 +221,9 @@ as.numeric(factor_sex)
 
     ## [1] 1 1 2 2
 
-# NSDUH
+# Let’s do some practice!
+
+## *NSDUH*
 
 ``` r
 NSDUH = read_html("http://samhda.s3-us-gov-west-1.amazonaws.com/s3fs-public/field-uploads/2k15StateFiles/NSDUHsaeShortTermCHG2015.htm") %>% 
@@ -283,3 +285,250 @@ NSDUH_marj %>%
 # vjust adjust the position of the axis. If I use vjust = 2, my x-axis will move 2 clicks to the right.
 # hjust adjust the up-down position of the axis. If I do hjust = 2, my x-axis will move 2 clicks up and overlap with my plot.
 ```
+
+## *Restaurant Inspection*
+
+The `Restaurant Inspection` dataset is inside the `p8105.datasets`
+package.
+
+``` r
+data("rest_inspec")
+# There is about 400,000 rows in this dataset
+rest_inspec %>% 
+  group_by(boro, grade) %>% 
+  summarize(n = n()) %>% 
+  pivot_wider(
+    names_from = grade, 
+    values_from = n)
+```
+
+    ## # A tibble: 6 × 8
+    ## # Groups:   boro [6]
+    ##   boro              A     B     C `Not Yet Graded`     P     Z  `NA`
+    ##   <chr>         <int> <int> <int>            <int> <int> <int> <int>
+    ## 1 BRONX         13688  2801   701              200   163   351 16833
+    ## 2 BROOKLYN      37449  6651  1684              702   416   977 51930
+    ## 3 MANHATTAN     61608 10532  2689              765   508  1237 80615
+    ## 4 Missing           4    NA    NA               NA    NA    NA    13
+    ## 5 QUEENS        35952  6492  1593              604   331   913 45816
+    ## 6 STATEN ISLAND  5215   933   207               85    47   149  6730
+
+To simplify things, I’ll remove inspections with scores other than A, B,
+or C, and also remove the restaurants with missing `boro` information.
+I’ll also clean up `boro` names a bit.
+
+``` r
+nyc_rest_insp = 
+  rest_inspec %>% 
+  filter(grade %in% c("A", "B", "C"), boro != "Missing") %>% 
+  mutate(boro = str_to_title(boro)) # Instead of making all letters lowercase, str_to_title keep the first letter uppercase.
+
+nyc_rest_insp %>% 
+  group_by(boro, grade) %>% 
+  summarize(n = n()) %>% 
+  pivot_wider(
+    names_from = grade, 
+    values_from = n)
+```
+
+    ## # A tibble: 5 × 4
+    ## # Groups:   boro [5]
+    ##   boro              A     B     C
+    ##   <chr>         <int> <int> <int>
+    ## 1 Bronx         13688  2801   701
+    ## 2 Brooklyn      37449  6651  1684
+    ## 3 Manhattan     61608 10532  2689
+    ## 4 Queens        35952  6492  1593
+    ## 5 Staten Island  5215   933   207
+
+Let’s find how many pizza places are there in NYC.
+
+``` r
+nyc_rest_insp %>% 
+  filter(str_detect(dba, "[Pp][Ii][Zz][Zz][Aa]")) %>% 
+  group_by(boro) %>% 
+  count() # summarize(n = n()) will give the same results
+```
+
+    ## # A tibble: 5 × 2
+    ## # Groups:   boro [5]
+    ##   boro              n
+    ##   <chr>         <int>
+    ## 1 Bronx          1531
+    ## 2 Brooklyn       2305
+    ## 3 Manhattan      2479
+    ## 4 Queens         1954
+    ## 5 Staten Island   471
+
+``` r
+nyc_rest_insp %>% 
+  filter(str_detect(dba, "[Pp][Ii][Zz][Zz][Aa]")) %>% 
+  mutate(
+    boro = str_replace(boro, "Manhattan", "The City"), # str_replace allow me to change "Manhattan" into "The City".
+    # Can also do: boro = fct_recode(boro, "The City" = "Manhattan")
+    boro = fct_infreq(boro)) %>% # I can rearrange the boro in terms of highest frequency to lowest frequency.)  
+  ggplot(aes(x = boro)) +
+  geom_bar()
+```
+
+![](Strings-and-Factors_files/figure-gfm/pizza%20time-1.png)<!-- -->
+
+What about examining pizza places and their grades by borough?
+
+``` r
+nyc_rest_insp %>% 
+  filter(str_detect(dba, "[Pp][Ii][Zz][Zz][Aa]")) %>% 
+  group_by(boro, grade) %>% 
+  summarize(n = n()) %>% 
+  pivot_wider(names_from = grade, values_from = n)
+```
+
+    ## # A tibble: 5 × 4
+    ## # Groups:   boro [5]
+    ##   boro              A     B     C
+    ##   <chr>         <int> <int> <int>
+    ## 1 Bronx          1170   305    56
+    ## 2 Brooklyn       1948   296    61
+    ## 3 Manhattan      1983   420    76
+    ## 4 Queens         1647   259    48
+    ## 5 Staten Island   323   127    21
+
+``` r
+nyc_rest_insp %>% 
+  filter(str_detect(dba, "[Pp][Ii][Zz][Zz][Aa]")) %>%
+  mutate(boro = fct_infreq(boro)) %>%
+  ggplot(aes(x = boro, fill = grade)) + 
+  geom_bar() 
+```
+
+![](Strings-and-Factors_files/figure-gfm/pizza%20grades-1.png)<!-- -->
+
+## *Weather Data*
+
+``` r
+weather_df = 
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728", "USC00519397", "USS0023B17S"),
+    var = c("PRCP", "TMIN", "TMAX"), 
+    date_min = "2017-01-01",
+    date_max = "2017-12-31") %>%
+  mutate(
+    name = recode(
+      id, 
+      USW00094728 = "CentralPark_NY", 
+      USC00519397 = "Waikiki_HA",
+      USS0023B17S = "Waterhole_WA"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) %>%
+  select(name, id, everything())
+```
+
+Our first example reordered name “by hand” using `fct_relevel`:
+
+``` r
+weather_df %>%
+  mutate(name = forcats::fct_relevel(name, c("Waikiki_HA", "CentralPark_NY", "Waterhole_WA"))) %>% 
+  ggplot(aes(x = name, y = tmax)) + 
+  geom_violin(aes(fill = name), color = "blue", alpha = .5) + 
+  theme(legend.position = "bottom")
+```
+
+    ## Warning: Removed 3 rows containing non-finite values (stat_ydensity).
+
+![](Strings-and-Factors_files/figure-gfm/hand%20reorder-1.png)<!-- -->
+
+We could instead reorder name according to tmax values in each name
+using `fct_reorder`:
+
+``` r
+weather_df %>%
+  mutate(name = forcats::fct_reorder(name, tmax)) %>% 
+  ggplot(aes(x = name, y = tmax)) + 
+  geom_violin(aes(fill = name), color = "blue", alpha = .5) + 
+  theme(legend.position = "bottom")
+```
+
+    ## Warning: Removed 3 rows containing non-finite values (stat_ydensity).
+
+![](Strings-and-Factors_files/figure-gfm/reorder%20by%20tmax-1.png)<!-- -->
+
+#### **Linear regression**
+
+The ordering of factor variables is important in linear regression.
+Specifically, the ordering determines the “reference” category, and is
+something that can be adjusted as needed.
+
+``` r
+weather_df %>%
+  lm(tmax ~ name, data = .) # Since we are piping, "data = . " tells R the tibble it should be using is the one that just piped in.
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = tmax ~ name, data = .)
+    ## 
+    ## Coefficients:
+    ##      (Intercept)    nameWaikiki_HA  nameWaterhole_WA  
+    ##           17.366            12.291            -9.884
+
+``` r
+weather_df %>%
+  mutate(name = forcats::fct_relevel(name, c("Waikiki_HA", "CentralPark_NY", "Waterhole_WA"))) %>% 
+  lm(tmax ~ name, data = .)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = tmax ~ name, data = .)
+    ## 
+    ## Coefficients:
+    ##        (Intercept)  nameCentralPark_NY    nameWaterhole_WA  
+    ##              29.66              -12.29              -22.18
+
+## *PULSE Data*
+
+Using `stringr` and `forcats`, the result is the same as we did many
+lectures before, and the differences are pretty small, but this is a bit
+cleaner.
+
+``` r
+pulse_data = 
+  haven::read_sas("./data/public_pulse_data.sas7bdat") %>%
+  janitor::clean_names() %>%
+  pivot_longer(
+    bdi_score_bl:bdi_score_12m,
+    names_to = "visit", 
+    names_prefix = "bdi_score_",
+    values_to = "bdi") %>%
+  select(id, visit, everything()) %>%
+  mutate(
+    visit = str_replace(visit, "bl", "00m"),
+    visit = factor(visit)) %>%
+  arrange(id, visit)
+
+print(pulse_data, n = 12)
+```
+
+## **Airbnb**
+
+We could also use factors in an exploratory analysis of the Airbnb data,
+for example when looking at the distribution of prices in various
+neighborhoods. Ordering these according to the median price makes for
+clearer plots than ordering neighborhoods alphabetically.
+
+``` r
+data("nyc_airbnb")
+
+nyc_airbnb %>%
+  filter(neighbourhood_group == "Manhattan") %>% 
+  mutate(
+    neighbourhood = fct_reorder(neighbourhood, price)) %>% 
+  ggplot(aes(x = neighbourhood, y = price)) +
+  geom_boxplot() +
+  coord_flip() + 
+  ylim(0, 1000)
+```
+
+    ## Warning: Removed 109 rows containing non-finite values (stat_boxplot).
+
+![](Strings-and-Factors_files/figure-gfm/airbnb-1.png)<!-- -->
